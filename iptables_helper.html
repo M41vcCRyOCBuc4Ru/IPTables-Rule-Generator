@@ -1,0 +1,569 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Iptables Rule Manager</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+	<style>
+	 * {
+            box-sizing: border-box;
+        }
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+            background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+            color: #333;
+            line-height: 1.6;
+        }
+        .header {
+            text-align: center;
+            margin-bottom: 40px;
+        }
+        h1 {
+            font-size: 2.5rem;
+            font-weight: 700;
+            color: #1a202c;
+            margin-bottom: 10px;
+        }
+        .note {
+            background: #bee3f8;
+            border: 1px solid #90cdf4;
+            border-radius: 12px;
+            padding: 20px;
+            margin: 20px 0;
+            font-size: 1rem;
+            color: #2c5282;
+        }
+        .note strong {
+            color: #2b6cb0;
+        }
+        .docs {
+            display: flex;
+            gap: 10px;
+            justify-content: center;
+            flex-wrap: wrap;
+            margin-top: 10px;
+        }
+        .docs a {
+            color: #3182ce;
+            text-decoration: none;
+            font-weight: 500;
+        }
+        .docs a:hover {
+            text-decoration: underline;
+        }
+        .tabs {
+            display: flex;
+            background: white;
+            border-radius: 12px 12px 0 0;
+            overflow: hidden;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.05);
+        }
+        .tab-btn {
+            flex: 1;
+            padding: 16px 24px;
+            background: transparent;
+            border: none;
+            cursor: pointer;
+            font-size: 1rem;
+            font-weight: 500;
+            color: #718096;
+            transition: all 0.3s ease;
+            border-bottom: 3px solid transparent;
+        }
+        .tab-btn:hover {
+            color: #2d3748;
+            background: #edf2f7;
+        }
+        .tab-btn.active {
+            color: #2b6cb0;
+            background: #ebf8ff;
+            border-bottom-color: #4299e1;
+        }
+        .tab {
+            display: none;
+            background: white;
+            padding: 32px;
+            border-radius: 0 12px 12px 12px;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.1);
+        }
+        .tab.active {
+            display: block;
+        }
+        .panel {
+            background: white;
+            border-radius: 12px;
+            padding: 32px;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.08);
+            margin-bottom: 24px;
+        }
+        h2, h3 {
+            color: #2d3748;
+            font-weight: 600;
+            margin-bottom: 20px;
+        }
+        label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 500;
+            color: #4a5568;
+            font-size: 0.95rem;
+        }
+        input, select, textarea {
+            width: 100%;
+            padding: 12px 16px;
+            border: 2px solid #e2e8f0;
+            border-radius: 8px;
+            font-size: 1rem;
+            transition: border-color 0.2s ease;
+            background: white;
+        }
+        input:focus, select:focus, textarea:focus {
+            outline: none;
+            border-color: #4299e1;
+            box-shadow: 0 0 0 3px rgba(66,153,225,0.1);
+        }
+        .match-group {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            gap: 20px;
+            margin: 24px 0;
+        }
+        .match-box {
+            border: 2px solid #e2e8f0;
+            border-radius: 12px;
+            padding: 20px;
+            background: #f7fafc;
+            transition: all 0.2s ease;
+        }
+        .match-box:hover {
+            border-color: #bee3f8;
+            box-shadow: 0 4px 12px rgba(66,153,225,0.15);
+        }
+        .explanation {
+            font-size: 0.9rem;
+            color: #718096;
+            margin-top: 8px;
+            font-style: italic;
+        }
+        .proto-section, .advanced-section, #match-opts, #target-opts {
+            display: none;
+            margin-top: 16px;
+        }
+        .section-title {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            margin-bottom: 16px;
+            color: #2d3748;
+            font-weight: 600;
+        }
+        button {
+            background: linear-gradient(135deg, #4299e1 0%, #3182ce 100%);
+            color: white;
+            padding: 12px 24px;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 1rem;
+            font-weight: 500;
+            transition: all 0.3s ease;
+            box-shadow: 0 2px 8px rgba(66,153,225,0.3);
+        }
+        button:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 4px 12px rgba(66,153,225,0.4);
+        }
+        button:active {
+            transform: translateY(0);
+        }
+        button.danger {
+            background: linear-gradient(135deg, #f56565 0%, #e53e3e 100%);
+            box-shadow: 0 2px 8px rgba(245,101,101,0.3);
+        }
+        button.danger:hover {
+            box-shadow: 0 4px 12px rgba(245,101,101,0.4);
+        }
+        .btn-group {
+            display: flex;
+            gap: 12px;
+            margin-top: 24px;
+        }
+        .output, .rule-preview {
+            background: #2d3748;
+            color: #e2e8f0;
+            padding: 20px;
+            border-radius: 8px;
+            font-family: 'SF Mono', Monaco, monospace;
+            white-space: pre-wrap;
+            margin-top: 20px;
+            min-height: 60px;
+            border: 1px solid #4a5568;
+            overflow-x: auto;
+        }
+        .insert-pos {
+            display: inline-block;
+            width: 80px;
+            margin-left: 8px;
+        }
+        @media (max-width: 768px) {
+            body {
+                padding: 12px;
+            }
+            h1 {
+                font-size: 2rem;
+            }
+            .match-group {
+                grid-template-columns: 1fr;
+            }
+            .tabs {
+                flex-direction: column;
+            }
+            .tab-btn {
+                border-radius: 0;
+                border-bottom: 1px solid #e2e8f0;
+            }
+            .tab-btn:last-child {
+                border-radius: 0 0 0 0;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1><i class="fas fa-shield-alt"></i> Iptables Rule Manager</h1>
+        <div class="note">
+            <strong>Client-side only:</strong> All rules are generated locally in your browser. Copy and run them on your Linux server manually.<br>
+            Full docs: <div class="docs">
+                <a href="https://man7.org/linux/man-pages/man8/iptables.8.html" target="_blank">iptables(8)</a>
+                <a href="https://man7.org/linux/man-pages/man8/iptables-extensions.8.html" target="_blank">iptables-extensions(8)</a>
+            </div>
+        </div>
+    </div>
+
+    <div class="tabs">
+        <button class="tab-btn active" onclick="switchTab('create')"><i class="fas fa-plus"></i> Rule Builder</button>
+        <button class="tab-btn" onclick="switchTab('multi')"><i class="fas fa-list"></i> Multi-Rule Script</button>
+        <button class="tab-btn" onclick="switchTab('other')"><i class="fas fa-terminal"></i> List/Flush/Policy</button>
+    </div>
+
+    <div id="create" class="tab active">
+        <div class="panel">
+            <h2>Rule Builder</h2>
+            <label>Table:
+                <select id="table" onchange="updateChains()">
+                    <option value="filter">filter</option>
+                    <option value="nat">nat</option>
+                    <option value="mangle">mangle</option>
+                    <option value="raw">raw</option>
+                    <option value="security">security</option>
+                </select>
+            </label>
+            <div class="explanation">Packet processing tables. nat/mangle/raw have different chains.</div>
+
+            <label>Chain:
+                <select id="chain"></select>
+            </label>
+            <div class="explanation">Built-in chains (updated automatically).</div>
+
+            <label>Operation:
+                <select id="operation">
+                    <option value="-A">-A Append</option>
+                    <option value="-I">-I Insert at top <input type="number" id="insert-pos" value="1" min="1" class="insert-pos"></option>
+
+                </select>
+            </label>
+            <div class="match-group">
+                <div class="match-box">
+                    <label>Protocol (-p):
+                        <select id="proto" onchange="toggleProto()">
+                            <option value="">all</option>
+                            <option value="tcp">tcp</option>
+                            <option value="udp">udp</option>
+                            <option value="icmp">icmp</option>
+                            <option value="sctp">sctp</option>
+                        </select>
+                    </label>
+                    <div id="tcp-opts" class="proto-section">
+                        <label>TCP --dport <input type="text" id="tcp-dport" placeholder="80,443 or 80:443"></label>
+                        <label>TCP --sport <input type="text" id="tcp-sport" placeholder="1024-65535"></label>
+                    </div>
+                    <div id="udp-opts" class="proto-section">
+                        <label>UDP --dport <input type="text" id="udp-dport" placeholder="53,123"></label>
+                    </div>
+                </div>
+                <div class="match-box">
+                    <label>Source IP (-s): <input type="text" id="src" placeholder="192.168.1.0/24"></label>
+                </div>
+                <div class="match-box">
+                    <label>Dest IP (-d): <input type="text" id="dst" placeholder="8.8.8.8"></label>
+                </div>
+                <div class="match-box">
+                    <label>In iface (-i): <input type="text" id="in-iface" placeholder="eth0,lo"></label>
+                </div>
+                <div class="match-box">
+                    <label>Out iface (-o): <input type="text" id="out-iface" placeholder="eth1"></label>
+                </div>
+            </div>
+
+            <div class="section-title"><i class="fas fa-link"></i> Connection Tracking</div>
+            <div class="match-group">
+                <div class="match-box">
+                    <label>State (--ctstate):
+                        <select id="ctstate" onchange="toggleCtstate()">
+                            <option value="">none</option>
+                            <option value="NEW">NEW</option>
+                            <option value="ESTABLISHED">ESTABLISHED</option>
+                            <option value="RELATED">RELATED</option>
+                            <option value="INVALID">INVALID</option>
+                        </select>
+                    </label>
+                </div>
+            </div>
+
+            <div class="section-title"><i class="fas fa-cogs"></i> Advanced Matches</div>
+            <div class="match-group">
+                <div class="match-box">
+                    <label>Module (-m):
+                        <select id="match-mod" onchange="toggleMatchOpts()">
+                            <option value="">None</option>
+                            <option value="limit">limit</option>
+                            <option value="multiport">multiport</option>
+                            <option value="recent">recent</option>
+                            <option value="string">string</option>
+                        </select>
+                    </label>
+                    <div id="match-opts">
+                        <label>Options: <input type="text" id="match-opts-input" placeholder="--limit 5/min --limit-burst 10"></label>
+                    </div>
+                </div>
+            </div>
+
+            <label>Target (-j):
+                <select id="target" onchange="toggleTargetOpts()">
+                    <option value="ACCEPT">ACCEPT</option>
+                    <option value="DROP">DROP</option>
+                    <option value="REJECT">REJECT</option>
+                    <option value="LOG">LOG</option>
+                    <option value="MASQUERADE">MASQUERADE</option>
+                    <option value="SNAT">SNAT</option>
+                    <option value="DNAT">DNAT</option>
+                    <option value="REDIRECT">REDIRECT</option>
+                </select>
+            </label>
+            <div id="target-opts">
+                <label>Options: <input type="text" id="target-opts-input" placeholder="--to-source 192.168.1.100 (SNAT)"></label>
+            </div>
+
+            <div class="btn-group">
+                <button onclick="generateRule()"><i class="fas fa-magic"></i> Generate Rule</button>
+                <button onclick="copyRule()"><i class="fas fa-copy"></i> Copy to Clipboard</button>
+            </div>
+            <div id="rule-preview" class="rule-preview"></div>
+        </div>
+    </div>
+
+    <div id="multi" class="tab">
+        <div class="panel">
+            <h2>Multi-Rule Script Builder</h2>
+            <textarea id="script-output" rows="15" placeholder="Generated rules or pasted script will appear here..."></textarea>
+            <div class="btn-group">
+                <button class="danger" onclick="clearScript()"><i class="fas fa-trash"></i> Clear</button>
+                <button onclick="copyScript()"><i class="fas fa-copy"></i> Copy Full Script</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="other" class="tab">
+        <div class="panel">
+            <h2>List, Flush, Policy</h2>
+            <label>Table:
+                <select id="other-table">
+                    <option value="filter">filter</option>
+                    <option value="nat">nat</option>
+                    <option value="mangle">mangle</option>
+                </select>
+            </label>
+            <div class="btn-group">
+                <button onclick="ListRules()"><i class="fas fa-list"></i> List Rules (-L -n -v)</button>
+                <button class="danger" onclick="FlushRules()"><i class="fas fa-broom"></i> Flush All (-F)</button>
+                <button onclick="ListZero()"><i class="fas fa-zero"></i> Zero Counters (-Z)</button>
+            </div>
+            <div id="other-output" class="output"></div>
+        </div>
+    </div>
+
+    <script>
+        // Chains added like this from personal py Script
+		const tableChains = {
+            filter: ['INPUT', 'FORWARD', 'OUTPUT'],
+            nat: ['PREROUTING', 'INPUT', 'OUTPUT', 'POSTROUTING'],
+            mangle: ['PREROUTING', 'INPUT', 'FORWARD', 'OUTPUT', 'POSTROUTING'],
+            raw: ['PREROUTING', 'OUTPUT'],
+            security: ['INPUT', 'FORWARD', 'OUTPUT']
+        };
+
+        function updateChains() {
+            const table = document.getElementById('table').value;
+            const chainSel = document.getElementById('chain');
+            chainSel.innerHTML = '';
+            tableChains[table].forEach(c => {
+                const opt = document.createElement('option');
+                opt.value = c;
+                opt.textContent = c;
+                chainSel.appendChild(opt);
+            });
+        }
+
+        function toggleProto() {
+            const proto = document.getElementById('proto').value;
+            document.getElementById('tcp-opts').style.display = proto === 'tcp' ? 'block' : 'none';
+            document.getElementById('udp-opts').style.display = proto === 'udp' ? 'block' : 'none';
+        }
+
+        function toggleCtstate() {
+// Didn't need to add this, but felt like it anyway
+        }
+// Added placeholders for easier use
+        const matchPlaceholders = {
+            limit: '--limit 5/min --limit-burst 10',
+            multiport: '--dports 80,443,8080 or --sports 1024-65535',
+            recent: '--rcheck --seconds 60 --hitcount 10 --name DEFAULT',
+            string: '--string "domain.com" --algo kmp'
+        };
+        const targetPlaceholders = {
+            SNAT: '--to-source 192.168.1.100',
+            DNAT: '--to-destination 10.0.0.180',
+            REDIRECT: '--to-ports 8080',
+            REJECT: '--reject-with icmp-host-prohibited'
+        };
+
+        function toggleMatchOpts() {
+            const mod = document.getElementById('match-mod');
+            const optsDiv = document.getElementById('match-opts');
+            const optsInput = document.getElementById('match-opts-input');
+            optsDiv.style.display = mod !== '' ? 'block' : 'none';
+            if (mod && matchPlaceholders[mod]) {
+                optsInput.placeholder = matchPlaceholders[mod];
+            } else {
+                optsInput.placeholder = '--module-specific options';
+            }
+        }
+		
+        function toggleTargetOpts() {
+            const tgt = document.getElementById('target').value;
+            const optsDiv = document.getElementById('target-opts');
+            const optsInput = document.getElementById('target-opts-input');
+            optsDiv.style.display = ['SNAT', 'DNAT', 'REDIRECT', 'REJECT'].includes(tgt) ? 'block' : 'none';
+            if (targetPlaceholders[tgt]) {
+                optsInput.placeholder = targetPlaceholders[tgt];
+            } else {
+                optsInput.placeholder = '--target-specific options';
+            }
+        }
+
+        function generateRule() {
+            let parts = ['iptables'];
+            parts.push(document.getElementById('operation').value);
+            parts.push('-t', document.getElementById('table').value);
+            parts.push(document.getElementById('chain').value);
+
+            // Protocol and ports
+            const proto = document.getElementById('proto').value;
+            if (proto) {
+                parts.push('-p', proto);
+                if (proto === 'tcp') {
+                    const dport = document.getElementById('tcp-dport').value.trim();
+                    if (dport) parts.push('--dport', dport);
+                    const sport = document.getElementById('tcp-sport').value.trim();
+                    if (sport) parts.push('--sport', sport);
+                } else if (proto === 'udp') {
+                    const dport = document.getElementById('udp-dport').value.trim();
+                    if (dport) parts.push('--dport', dport);
+                }
+            }
+
+            // IPs, interfaces
+            const src = document.getElementById('src').value.trim();
+            if (src) parts.push('-s', src);
+            const dst = document.getElementById('dst').value.trim();
+            if (dst) parts.push('-d', dst);
+            const iniface = document.getElementById('in-iface').value.trim();
+            if (iniface) parts.push('-i', iniface);
+            const outiface = document.getElementById('out-iface').value.trim();
+            if (outiface) parts.push('-o', outiface);
+
+            // Conntrack state added but mostly for the completness
+            const ctstate = document.getElementById('ctstate').value;
+            if (ctstate) {
+                parts.push('-m', 'conntrack', '--ctstate', ctstate);
+            }
+
+            // Advanced match
+            const mod = document.getElementById('match-mod').value;
+            if (mod) {
+                parts.push('-m', mod);
+                const modOpts = document.getElementById('match-opts-input').value.trim();
+                if (modOpts) parts.push(modOpts);
+            }
+
+            // Target
+            const target = document.getElementById('target').value;
+            parts.push('-j', target);
+            const tgtOpts = document.getElementById('target-opts-input').value.trim();
+            if (tgtOpts) parts.push(tgtOpts);
+
+            const rule = parts.join(' ');
+            document.getElementById('rule-preview').textContent = rule;
+        }
+
+        function copyRule() {
+            const rule = document.getElementById('rule-preview').textContent;
+            if (rule) {
+                navigator.clipboard.writeText(rule).then(() => alert('Rule copied!'));
+            }
+        }
+
+        function switchTab(tabId) {
+            document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+            document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+            document.getElementById(tabId).classList.add('active');
+            event.target.classList.add('active');
+        }
+
+        function ListRules() {
+            const table = document.getElementById('other-table').value;
+            document.getElementById('other-output').textContent = `iptables -t ${table} -L -n -v`;
+        }
+
+        function FlushRules() {
+            const table = document.getElementById('other-table').value;
+            document.getElementById('other-output').textContent = `iptables -t ${table} -F`;
+        }
+
+        function ListZero() {
+            const table = document.getElementById('other-table').value;
+            document.getElementById('other-output').textContent = `iptables -t ${table} -Z`;
+        }
+
+        function clearScript() {
+            document.getElementById('script-output').value = '';
+        }
+
+        function copyScript() {
+            const script = document.getElementById('script-output').value;
+            if (script) {
+                navigator.clipboard.writeText(script).then(() => alert('Script copied!'));
+            }
+        }
+
+        // Init
+        updateChains();
+        toggleProto();
+    </script>
+</body>
+</html>
